@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "478782049916",
+    "project_id": "drapeshoppe-e6098",
+    "storage_bucket": "drapeshoppe-e6098.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478782049916:android:806b821839bad3180483f9",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4PTZxNVwzDLqQ5HjoGKaqOGK5QLP9Yj8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
