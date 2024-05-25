@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/screens/signup_screen.dart';
 
 class SalesHomeScreen extends StatefulWidget {
   @override
@@ -16,7 +19,22 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Deal Form'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Deal Form'),
+            IconButton(onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => SignUpScreen(),
+                ),
+              );
+            }, icon: Icon(Icons.logout))
+          ],
+        ),
+
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),

@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/models/user.dart';
+import 'package:my_app/screens/agent_home_screen.dart';
 import 'package:my_app/screens/login_screen.dart';
 import 'package:my_app/screens/sales_home_screen.dart';
 
@@ -9,15 +12,66 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  TextEditingController? passwordController;
-  TextEditingController? emailController;
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
   String selectedField = 'Salesperson';
   List<String> fields = ['Salesperson', 'Agent'];
+
+  void typeOfUser(BuildContext context) {
+    selectedField == 'Salesperson'
+        ? Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => SalesHomeScreen(),
+      ),
+    )
+        : Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => AgentHomeScreen(),
+      ),
+    );
+  }
+
+  Future<void> signUp(BuildContext context) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      User? user = userCredential.user;
+      if (user != null) {
+        UserModel newUser = UserModel(
+          uid: user.uid,
+          email: user.email!,
+          userType: selectedField,
+        );
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(newUser.toMap());
+      }
+
+      typeOfUser(context);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        print('The password provided is too weak.');
+      } else if (e.code == 'email-already-in-use') {
+        print('The account already exists for that email.');
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
+      body: SingleChildScrollView(
+        child: Padding(
           padding: EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,28 +113,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               TextButton(
                 onPressed: () async {
-                  await signUp;
-                  selectedField == 'Salesperson'
-                      ? Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (BuildContext context) =>
-                                SalesHomeScreen(),
-                          ),
-                        )
-                      : Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (BuildContext context) =>
-                                SalesHomeScreen(),
-                          ),
-                        );
+                  await signUp(context);
                 },
                 child: const Text('Sign Up'),
               ),
-              SizedBox(
-                height: 50,
-              ),
+              SizedBox(height: 50),
               Row(
                 children: [
                   Text('Already have an account? '),
@@ -101,24 +138,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               )
             ],
-          )),
+          ),
+        ),
+      ),
     );
-  }
-
-  Future<void> signUp() async {
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController!.text,
-        password: passwordController!.text,
-      );
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
-      }
-    } catch (e) {
-      print(e);
-    }
   }
 }
