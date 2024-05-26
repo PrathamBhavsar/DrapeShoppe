@@ -1,10 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:my_app/models/user.dart';
-import 'package:my_app/screens/agent_home_screen.dart';
+import 'package:my_app/bottom_app_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_app/models/agent.dart';
+import 'package:my_app/models/salesperson.dart';
 import 'package:my_app/screens/login_screen.dart';
-import 'package:my_app/screens/sales_home_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -12,50 +13,54 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
-  String selectedField = 'Salesperson';
   List<String> fields = ['Salesperson', 'Agent'];
-
-  void typeOfUser(BuildContext context) {
-    selectedField == 'Salesperson'
-        ? Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) => SalesHomeScreen(),
-      ),
-    )
-        : Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) => AgentHomeScreen(),
-      ),
-    );
-  }
+  String selectedField = 'Salesperson'; // Initialize with default value
 
   Future<void> signUp(BuildContext context) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
-
       User? user = userCredential.user;
       if (user != null) {
-        UserModel newUser = UserModel(
-          uid: user.uid,
-          email: user.email!,
-          userType: selectedField,
-        );
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set(newUser.toMap());
+        if (selectedField == 'Salesperson') {
+          SalespersonModel newUser = SalespersonModel(
+            name: nameController.text,
+            uid: user.uid,
+            email: user.email!,
+            userType: selectedField,
+          );
+          await FirebaseFirestore.instance
+              .collection('salespersons')
+              .doc(user.uid)
+              .set(newUser.toMap());
+        } else {
+          AgentModel newUser = AgentModel(
+            name: nameController.text,
+            uid: user.uid,
+            email: user.email!,
+            userType: selectedField,
+          );
+          await FirebaseFirestore.instance
+              .collection('agents')
+              .doc(user.uid)
+              .set(newUser.toMap());
+        }
+        // Store the user type in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userType', selectedField);
       }
-
-      typeOfUser(context);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (BuildContext context) => BottomAppBarWidget(),
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         print('The password provided is too weak.');
@@ -85,6 +90,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               SizedBox(height: 50),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                ),
+              ),
               TextField(
                 controller: emailController,
                 decoration: const InputDecoration(
@@ -119,8 +130,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               SizedBox(height: 50),
               Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Text('Already have an account? '),
+                  Text('Already have an account?'),
                   TextButton(
                     onPressed: () {
                       Navigator.pushReplacement(
@@ -134,9 +146,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ' Login',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),

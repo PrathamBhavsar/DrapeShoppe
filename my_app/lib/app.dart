@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/screens/home_screen.dart';
 import 'package:my_app/screens/sales_home_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
@@ -30,9 +31,9 @@ class AuthCheck extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasData) {
-          return SalesHomeScreen(); // User is logged in
+          return HomeScreen(); // User is logged in
         } else {
-          return SignUpScreen(); // User is not logged in
+          return HomeScreen(); // User is not logged in
         }
       },
     );

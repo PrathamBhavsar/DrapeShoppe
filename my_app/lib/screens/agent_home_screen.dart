@@ -1,4 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/bottom_app_bar.dart';
+import 'package:my_app/screens/signup_screen.dart';
 
 class AgentHomeScreen extends StatefulWidget {
   @override
@@ -6,16 +10,51 @@ class AgentHomeScreen extends StatefulWidget {
 }
 
 class _AgentHomeScreenState extends State<AgentHomeScreen> {
-  String selectedField = 'Agent 1';
-  List<String> fields = ['Agent 1', 'Agent 2', 'Agent 3'];
+  String selectedField = '';
+  List<String> fields = [];
   String customerName = '';
   bool isSpecialDeal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAgents();
+  }
+
+  Future<void> _fetchAgents() async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('salespersons').get();
+      List<String> agentEmails = querySnapshot.docs.map((doc) => doc['email'] as String).toList();
+      setState(() {
+        fields = agentEmails;
+        if (fields.isNotEmpty) {
+          selectedField = fields[0]; // Set default selected field
+        }
+      });
+    } catch (e) {
+      print('Error fetching salesperson: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Deal Form'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Deal Form Agent'),
+            IconButton(onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => SignUpScreen(),
+                ),
+              );
+            }, icon: Icon(Icons.logout))
+          ],
+        )
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
