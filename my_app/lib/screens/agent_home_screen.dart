@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:my_app/bottom_app_bar.dart';
+import 'package:my_app/models/bill.dart';
+import 'package:my_app/screens/edit_bill_screen.dart';
+import 'package:my_app/screens/generate_bill_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
 class AgentHomeScreen extends StatefulWidget {
@@ -10,30 +13,39 @@ class AgentHomeScreen extends StatefulWidget {
 }
 
 class _AgentHomeScreenState extends State<AgentHomeScreen> {
-  String selectedField = '';
-  List<String> fields = [];
-  String customerName = '';
-  bool isSpecialDeal = false;
+  String? agentName;
 
   @override
   void initState() {
     super.initState();
-    _fetchAgents();
+    getAgentName();
   }
 
-  Future<void> _fetchAgents() async {
-    try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('salespersons').get();
-      List<String> agentEmails = querySnapshot.docs.map((doc) => doc['email'] as String).toList();
-      setState(() {
-        fields = agentEmails;
-        if (fields.isNotEmpty) {
-          selectedField = fields[0]; // Set default selected field
-        }
-      });
-    } catch (e) {
-      print('Error fetching salesperson: $e');
+  Future<void> getAgentName() async {
+    String? name = await getName();
+    setState(() {
+      agentName = name;
+    });
+  }
+
+  Future<String> getName() async {
+    DocumentSnapshot agentDoc = await FirebaseFirestore.instance
+        .collection('agents')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+
+    if (agentDoc.exists) {
+      return agentDoc['name'];
     }
+
+    throw Exception('User name not found');
+  }
+
+  Stream<QuerySnapshot> _getBillsStream() {
+    return FirebaseFirestore.instance
+        .collection('bills')
+        .where('agentName', isEqualTo: agentName)
+        .snapshots();
   }
 
   @override
@@ -43,90 +55,95 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Deal Form Agent'),
-            IconButton(onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => SignUpScreen(),
-                ),
-              );
-            }, icon: Icon(Icons.logout))
-          ],
-        )
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Deal No: ${DateTime.now().millisecondsSinceEpoch}',
-              style:
-                  const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20.0),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Customer Name',
-              ),
-              onChanged: (value) {
-                setState(() {
-                  customerName = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20.0),
-            const Text(
-              'Is Agent Required:',
-              style: TextStyle(fontSize: 16.0),
-            ),
-            Row(
-              children: [
-                Radio(
-                  value: false,
-                  groupValue: isSpecialDeal,
-                  onChanged: (value) {
-                    setState(() {
-                      isSpecialDeal = value!;
-                    });
-                  },
-                ),
-                const Text('No'),
-                Radio(
-                  value: true,
-                  groupValue: isSpecialDeal,
-                  onChanged: (value) {
-                    setState(() {
-                      isSpecialDeal = value!;
-                    });
-                  },
-                ),
-                const Text('Yes'),
-              ],
-            ),
-            const SizedBox(height: 20.0),
-            if (isSpecialDeal)
-              Column(
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedField,
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedField = newValue!;
-                      });
-                    },
-                    items: fields.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
+            const Text('Agency'),
+            IconButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => SignUpScreen(),
                   ),
-                ],
-              )
+                );
+              },
+              icon: Icon(Icons.logout),
+            ),
           ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FutureBuilder<String>(
+                future: getName(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else if (snapshot.hasData) {
+                    return Text(
+                      'Hi, ${snapshot.data!}',
+                      style: const TextStyle(
+                          fontSize: 18.0, fontWeight: FontWeight.bold),
+                    );
+                  } else {
+                    return const Text('No name found');
+                  }
+                },
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'Your Bills:',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              StreamBuilder<QuerySnapshot>(
+                stream: _getBillsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Text('No bills found');
+                  } else {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        DocumentSnapshot billDoc = snapshot.data!.docs[index];
+                        Map<String, dynamic> billData =
+                        billDoc.data() as Map<String, dynamic>;
+                        Bill bill = Bill.fromMap(billData);
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) => EditBillScreen(bill: bill),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            child: ListTile(
+                              title: Text(bill.customerName),
+                              subtitle: Text('Deal No: ${bill.dealNo}'),
+                              trailing: Text('Salesperson: ${bill.salespersonName}'),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

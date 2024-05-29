@@ -4,12 +4,18 @@ class Bill {
   final String agentName;
   final String salesRemarks;
   final String dealNo;
+  String? agentRemarks;
+  String? agentCost;
 
-  Bill({required this.salespersonName,
+  Bill({
+    required this.salespersonName,
     required this.customerName,
     required this.agentName,
     required this.salesRemarks,
-    required this.dealNo,});
+    required this.dealNo,
+    this.agentRemarks,
+    this.agentCost,
+  });
 
   Map<String, dynamic> toMap() {
     return {
@@ -18,6 +24,8 @@ class Bill {
       'agentName': agentName,
       'salesRemarks': salesRemarks,
       'dealNo': dealNo,
+      'agentRemarks': agentRemarks,
+      'agentCost': agentCost,
     };
   }
 
@@ -28,6 +36,8 @@ class Bill {
       agentName: map['agentName'],
       salesRemarks: map['salesRemarks'],
       dealNo: map['dealNo'],
+      agentRemarks: map['agentRemarks'],
+      agentCost: map['agentCost'],
     );
   }
 }

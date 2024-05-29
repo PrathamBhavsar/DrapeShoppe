@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:my_app/bottom_app_bar.dart';
 import 'package:my_app/models/bill.dart';
+import 'package:my_app/screens/generate_bill_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
 class SalesHomeScreen extends StatefulWidget {
@@ -11,16 +12,19 @@ class SalesHomeScreen extends StatefulWidget {
 }
 
 class _SalesHomeScreenState extends State<SalesHomeScreen> {
-  String selectedField = '';
-  List<String> fields = [];
-  bool isSpecialDeal = false;
-  final cNameController = TextEditingController();
-  final sRemarkController = TextEditingController();
+  String? salespersonName;
 
   @override
   void initState() {
     super.initState();
-    _fetchAgents();
+    getSalespersonName();
+  }
+
+  Future<void> getSalespersonName() async {
+    String? name = await getName();
+    setState(() {
+      salespersonName = name;
+    });
   }
 
   Future<String> getName() async {
@@ -36,68 +40,32 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
     throw Exception('User name not found');
   }
 
-  Future<void> _fetchAgents() async {
-    try {
-      QuerySnapshot querySnapshot =
-      await FirebaseFirestore.instance.collection('agents').get();
-      List<String> agentEmails =
-      querySnapshot.docs.map((doc) => doc['name'] as String).toList();
-      setState(() {
-        fields = agentEmails;
-        if (fields.isNotEmpty) {
-          selectedField = fields[0]; // Set default selected field
-        }
-      });
-    } catch (e) {
-      print('Error fetching agents: $e');
-    }
-  }
-
-  Future<void> _submitBill(String salespersonName) async {
-    try {
-      String customerName = cNameController.text.trim();
-      String salesRemarks = sRemarkController.text.trim();
-      String agentName = isSpecialDeal ? selectedField : '';
-      String dealNo = DateTime.now().millisecondsSinceEpoch.toString();
-
-      Bill bill = Bill(
-        salespersonName: salespersonName,
-        customerName: customerName,
-        agentName: agentName,
-        salesRemarks: salesRemarks,
-        dealNo: dealNo,
-      );
-
-      await FirebaseFirestore.instance.collection('bills').add(bill.toMap());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bill submitted successfully')),
-      );
-
-      // Clear the form fields
-      cNameController.clear();
-      sRemarkController.clear();
-      setState(() {
-        isSpecialDeal = false;
-        if (fields.isNotEmpty) {
-          selectedField = fields[0];
-        }
-      });
-    } catch (e) {
-      print('Error submitting bill: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting bill')),
-      );
-    }
+  Stream<QuerySnapshot> _getBillsStream() {
+    return FirebaseFirestore.instance
+        .collection('bills')
+        .where('salespersonName', isEqualTo: salespersonName)
+        .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) => GenerateBillScreen(),
+            ),
+          );
+        },
+      ),
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Deal Form Sales'),
+            const Text('Sales'),
             IconButton(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
@@ -137,106 +105,45 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                   }
                 },
               ),
-              Text(
-                'Deal No: ${DateTime.now().millisecondsSinceEpoch}',
-                style: const TextStyle(
-                    fontSize: 18.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20.0),
-              TextField(
-                onTapOutside: (event) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
-                controller: cNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name',
-                ),
-              ),
-              const SizedBox(height: 20.0),
+              const SizedBox(height: 2),
               const Text(
-                'Is Agent Required:',
-                style: TextStyle(fontSize: 16.0),
+                'Your Bills:',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
-              Row(
-                children: [
-                  Radio(
-                    value: false,
-                    groupValue: isSpecialDeal,
-                    onChanged: (value) {
-                      setState(() {
-                        isSpecialDeal = value!;
-                      });
-                    },
-                  ),
-                  const Text('No'),
-                  Radio(
-                    value: true,
-                    groupValue: isSpecialDeal,
-                    onChanged: (value) {
-                      setState(() {
-                        isSpecialDeal = value!;
-                      });
-                    },
-                  ),
-                  const Text('Yes'),
-                ],
-              ),
-              const SizedBox(height: 20.0),
-              if (isSpecialDeal)
-                fields.isEmpty
-                    ? CircularProgressIndicator()
-                    : DropdownButtonFormField<String>(
-                  value: selectedField,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedField = newValue!;
-                    });
-                  },
-                  items: fields
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 20.0),
-              TextFormField(
-                maxLines: null,
-                onTapOutside: (event) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
-                controller: sRemarkController,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  isCollapsed: false,
-                  label: Text('Sales Remarks'),
-                  border: const OutlineInputBorder(
-                    borderSide: BorderSide(),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20.0),
-              TextButton(
-                onPressed: () async {
-                  if (cNameController.text.isEmpty ||
-                      sRemarkController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Please fill out all required fields'),
-                      ),
-                    );
-                    return;
-                  }
+              const SizedBox(height: 10),
+              StreamBuilder<QuerySnapshot>(
+                stream: _getBillsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Text('No bills found');
+                  } else {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        DocumentSnapshot billDoc = snapshot.data!.docs[index];
+                        Map<String, dynamic> billData =
+                            billDoc.data() as Map<String, dynamic>;
+                        Bill bill = Bill.fromMap(billData);
 
-                  String salespersonName = await getName();
-                  _submitBill(salespersonName);
+                        return GestureDetector(
+                          child: Card(
+                            child: ListTile(
+                              title: Text(bill.customerName),
+                              subtitle: Text('Deal No: ${bill.dealNo}'),
+                              trailing: Text('Agent: ${bill.agentName}'),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
                 },
-                child: Text('Submit'),
-              )
+              ),
             ],
           ),
         ),

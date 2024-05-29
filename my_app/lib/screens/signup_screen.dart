@@ -17,7 +17,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   List<String> fields = ['Salesperson', 'Agent'];
-  String selectedField = 'Salesperson'; // Initialize with default value
+  String selectedField = 'Salesperson';
 
   Future<void> signUp(BuildContext context) async {
     try {
