@@ -1,10 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:my_app/models/bill.dart';
-import 'package:my_app/screens/edit_bill_screen.dart';
-import 'package:my_app/screens/generate_bill_screen.dart';
+import 'package:my_app/constants/agent_fetch.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
 class AgentHomeScreen extends StatefulWidget {
@@ -41,10 +38,11 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
     throw Exception('User name not found');
   }
 
-  Stream<QuerySnapshot> _getBillsStream() {
+  Stream<QuerySnapshot> getAgentBillsStream() {
     return FirebaseFirestore.instance
         .collection('bills')
         .where('agentName', isEqualTo: agentName)
+        .orderBy('dealNo', descending: true)
         .snapshots();
   }
 
@@ -95,14 +93,9 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 2),
-              const Text(
-                'Your Bills:',
-                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               StreamBuilder<QuerySnapshot>(
-                stream: _getBillsStream(),
+                stream: getAgentBillsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator();
@@ -111,40 +104,30 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
                   } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Text('No bills found');
                   } else {
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        DocumentSnapshot billDoc = snapshot.data!.docs[index];
-                        Map<String, dynamic> billData =
-                        billDoc.data() as Map<String, dynamic>;
-                        Bill bill = Bill.fromMap(billData);
+                    List<DocumentSnapshot> allBills = snapshot.data!.docs;
+                    List<DocumentSnapshot> openBills = allBills
+                        .where((doc) =>
+                            (doc.data() as Map<String, dynamic>)['status'] ==
+                            'Open')
+                        .toList();
+                    List<DocumentSnapshot> submittedBills = allBills
+                        .where((doc) =>
+                            (doc.data() as Map<String, dynamic>)['status'] ==
+                            'Submitted')
+                        .toList();
+                    List<DocumentSnapshot> acceptedBills = allBills
+                        .where((doc) =>
+                            (doc.data() as Map<String, dynamic>)['status'] ==
+                            'Accepted')
+                        .toList();
 
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) => EditBillScreen(bill: bill),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            child: ListTile(
-                              title: Text(bill.customerName),
-                              subtitle: Text('Deal No: ${bill.dealNo}'),
-                              trailing: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Salesperson: ${bill.salespersonName}'),
-                                  Text('Status: ${bill.status}'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildAgentBillCategory('Open', openBills),
+                        buildAgentBillCategory('Approved', submittedBills),
+                        buildAgentBillCategory('Completed', acceptedBills),
+                      ],
                     );
                   }
                 },

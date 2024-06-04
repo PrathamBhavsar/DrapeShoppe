@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/constants/sales_fetch.dart';
 import 'package:my_app/models/bill.dart';
 import 'package:my_app/screens/generate_bill_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
@@ -40,10 +41,11 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
     throw Exception('User name not found');
   }
 
-  Stream<QuerySnapshot> _getBillsStream() {
+  Stream<QuerySnapshot> getSalesBillsStream() {
     return FirebaseFirestore.instance
         .collection('bills')
         .where('salespersonName', isEqualTo: salespersonName)
+        .orderBy('dealNo', descending: true)
         .snapshots();
   }
 
@@ -105,14 +107,9 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 2),
-              const Text(
-                'Your Bills:',
-                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               StreamBuilder<QuerySnapshot>(
-                stream: _getBillsStream(),
+                stream: getSalesBillsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator();
@@ -121,32 +118,30 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                   } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Text('No bills found');
                   } else {
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        DocumentSnapshot billDoc = snapshot.data!.docs[index];
-                        Map<String, dynamic> billData =
-                            billDoc.data() as Map<String, dynamic>;
-                        Bill bill = Bill.fromMap(billData);
+                    List<DocumentSnapshot> allBills = snapshot.data!.docs;
+                    List<DocumentSnapshot> openBills = allBills
+                        .where((doc) =>
+                    (doc.data() as Map<String, dynamic>)['status'] ==
+                        'Open')
+                        .toList();
+                    List<DocumentSnapshot> submittedBills = allBills
+                        .where((doc) =>
+                    (doc.data() as Map<String, dynamic>)['status'] ==
+                        'Submitted')
+                        .toList();
+                    List<DocumentSnapshot> acceptedBills = allBills
+                        .where((doc) =>
+                    (doc.data() as Map<String, dynamic>)['status'] ==
+                        'Accepted')
+                        .toList();
 
-                        return GestureDetector(
-                          child: Card(
-                            child: ListTile(
-                              title: Text(bill.customerName),
-                              subtitle: Text('Deal No: ${bill.dealNo}'),
-                              trailing: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Agent: ${bill.agentName}'),
-                                  Text('Status: ${bill.status}'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildSalesBillCategory('Open', openBills),
+                        buildSalesBillCategory('Approved', submittedBills),
+                        buildSalesBillCategory('Completed', acceptedBills),
+                      ],
                     );
                   }
                 },

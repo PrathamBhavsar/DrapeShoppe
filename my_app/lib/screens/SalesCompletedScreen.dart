@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/constants/sales_fetch.dart';
 import 'package:my_app/models/bill.dart';
 import 'package:my_app/screens/edit_bill_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
@@ -17,10 +17,10 @@ class _SalesCompletedScreenState extends State<SalesCompletedScreen> {
   @override
   void initState() {
     super.initState();
-    getSalesPersonName();
+    getSalespersonName();
   }
 
-  Future<void> getSalesPersonName() async {
+  Future<void> getSalespersonName() async {
     String? name = await getName();
     setState(() {
       salespersonName = name;
@@ -28,23 +28,23 @@ class _SalesCompletedScreenState extends State<SalesCompletedScreen> {
   }
 
   Future<String> getName() async {
-    DocumentSnapshot salesPersonDoc = await FirebaseFirestore.instance
+    DocumentSnapshot salespersonDoc = await FirebaseFirestore.instance
         .collection('salespersons')
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
 
-    if (salesPersonDoc.exists) {
-      return salesPersonDoc['name'];
+    if (salespersonDoc.exists) {
+      return salespersonDoc['name'];
     }
 
     throw Exception('User name not found');
   }
 
-  Stream<QuerySnapshot> _getBillsStream() {
+  Stream<QuerySnapshot> getSalesBillsStream() {
     return FirebaseFirestore.instance
         .collection('bills')
         .where('salespersonName', isEqualTo: salespersonName)
-        .where('status', isEqualTo: 'Completed')
+        .orderBy('dealNo', descending: true)
         .snapshots();
   }
 
@@ -77,15 +77,10 @@ class _SalesCompletedScreenState extends State<SalesCompletedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Completed Bills:',
-                style: const TextStyle(
-                    fontSize: 18.0, fontWeight: FontWeight.bold),
-              ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               StreamBuilder<QuerySnapshot>(
-                stream: _getBillsStream(),
+                stream: getSalesBillsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator();
@@ -94,41 +89,17 @@ class _SalesCompletedScreenState extends State<SalesCompletedScreen> {
                   } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Text('No bills found');
                   } else {
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        DocumentSnapshot billDoc = snapshot.data!.docs[index];
-                        Map<String, dynamic> billData =
-                        billDoc.data() as Map<String, dynamic>;
-                        Bill bill = Bill.fromMap(billData);
-
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    EditBillScreen(bill: bill),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            child: ListTile(
-                              title: Text(bill.customerName),
-                              subtitle: Text('Deal No: ${bill.dealNo}'),
-                              trailing: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Salesperson: ${bill.salespersonName}'),
-                                  Text('Status: ${bill.status}'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                    List<DocumentSnapshot> allBills = snapshot.data!.docs;
+                    List<DocumentSnapshot> CompletedBills = allBills
+                        .where((doc) =>
+                    (doc.data() as Map<String, dynamic>)['status'] ==
+                        'Completed')
+                        .toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildSalesBillCategory('Completed', CompletedBills),
+                      ],
                     );
                   }
                 },
