@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/screens/SalesCompletedScreen.dart';
+import 'package:my_app/screens/agent_billed_screen.dart';
+import 'package:my_app/screens/agent_completed_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_app/screens/agent_home_screen.dart';
 import 'package:my_app/screens/profile.dart';
 import 'package:my_app/screens/sales_home_screen.dart';
+
+import 'screens/sales_billed_screen.dart';
 
 class BottomAppBarWidget extends StatefulWidget {
   const BottomAppBarWidget({super.key});
@@ -28,7 +33,8 @@ class _BottomAppBarWidgetState extends State<BottomAppBarWidget> {
     setState(() {
       widgets = [
         userType == 'Salesperson' ? SalesHomeScreen() : AgentHomeScreen(),
-        ProfileScreen(),
+        userType == 'Salesperson' ? SalesCompletedScreen() : AgentApprovedScreen(),
+        userType == 'Salesperson' ? SalesBilledScreen() : AgentBilledScreen(),
       ];
     });
   }
@@ -46,8 +52,9 @@ class _BottomAppBarWidgetState extends State<BottomAppBarWidget> {
           currentIndex: _index,
           onTap: _itemTapped,
           items: [
-            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Bills'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Open'),
+            BottomNavigationBarItem(icon: Icon(Icons.checklist_rtl), label: 'Completed'),
+            BottomNavigationBarItem(icon: Icon(Icons.monetization_on_outlined), label: 'Billed'),
           ],
         ),
       ),

@@ -3,38 +3,39 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/bill.dart';
+import 'package:my_app/screens/edit_bill_screen.dart';
 import 'package:my_app/screens/generate_bill_screen.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
-class SalesHomeScreen extends StatefulWidget {
+class AgentApprovedScreen extends StatefulWidget {
   @override
-  _SalesHomeScreenState createState() => _SalesHomeScreenState();
+  _AgentApprovedScreenState createState() => _AgentApprovedScreenState();
 }
 
-class _SalesHomeScreenState extends State<SalesHomeScreen> {
-  String? salespersonName;
+class _AgentApprovedScreenState extends State<AgentApprovedScreen> {
+  String? agentName;
 
   @override
   void initState() {
     super.initState();
-    getSalespersonName();
+    getAgentName();
   }
 
-  Future<void> getSalespersonName() async {
+  Future<void> getAgentName() async {
     String? name = await getName();
     setState(() {
-      salespersonName = name;
+      agentName = name;
     });
   }
 
   Future<String> getName() async {
-    DocumentSnapshot salespersonDoc = await FirebaseFirestore.instance
-        .collection('salespersons')
+    DocumentSnapshot agentDoc = await FirebaseFirestore.instance
+        .collection('agents')
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
 
-    if (salespersonDoc.exists) {
-      return salespersonDoc['name'];
+    if (agentDoc.exists) {
+      return agentDoc['name'];
     }
 
     throw Exception('User name not found');
@@ -43,29 +44,19 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
   Stream<QuerySnapshot> _getBillsStream() {
     return FirebaseFirestore.instance
         .collection('bills')
-        .where('salespersonName', isEqualTo: salespersonName)
+        .where('agentName', isEqualTo: agentName)
+        .where('status', isEqualTo: 'Approved')
         .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) => GenerateBillScreen(),
-            ),
-          );
-        },
-      ),
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Sales'),
+            const Text('Agency'),
             IconButton(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
@@ -87,23 +78,10 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FutureBuilder<String>(
-                future: getName(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  } else if (snapshot.hasData) {
-                    return Text(
-                      'Hi, ${snapshot.data!}',
-                      style: const TextStyle(
-                          fontSize: 18.0, fontWeight: FontWeight.bold),
-                    );
-                  } else {
-                    return const Text('No name found');
-                  }
-                },
+              Text(
+                'Completed Bills',
+                style: const TextStyle(
+                    fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 2),
               const Text(
@@ -131,6 +109,15 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                         Bill bill = Bill.fromMap(billData);
 
                         return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    EditBillScreen(bill: bill),
+                              ),
+                            );
+                          },
                           child: Card(
                             child: ListTile(
                               title: Text(bill.customerName),
@@ -139,7 +126,7 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text('Agent: ${bill.agentName}'),
+                                  Text('Salesperson: ${bill.salespersonName}'),
                                   Text('Status: ${bill.status}'),
                                 ],
                               ),

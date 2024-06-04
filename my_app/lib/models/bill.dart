@@ -6,6 +6,8 @@ class Bill {
   final String dealNo;
   String? agentRemarks;
   String? agentCost;
+  final String status;
+
 
   Bill({
     required this.salespersonName,
@@ -15,6 +17,8 @@ class Bill {
     required this.dealNo,
     this.agentRemarks,
     this.agentCost,
+    required this.status,
+
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +30,7 @@ class Bill {
       'dealNo': dealNo,
       'agentRemarks': agentRemarks,
       'agentCost': agentCost,
+      'status': status,
     };
   }
 
@@ -38,6 +43,7 @@ class Bill {
       dealNo: map['dealNo'],
       agentRemarks: map['agentRemarks'],
       agentCost: map['agentCost'],
+      status: map['status'],
     );
   }
 }

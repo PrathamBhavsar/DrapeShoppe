@@ -133,7 +133,14 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
                             child: ListTile(
                               title: Text(bill.customerName),
                               subtitle: Text('Deal No: ${bill.dealNo}'),
-                              trailing: Text('Salesperson: ${bill.salespersonName}'),
+                              trailing: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Salesperson: ${bill.salespersonName}'),
+                                  Text('Status: ${bill.status}'),
+                                ],
+                              ),
                             ),
                           ),
                         );

@@ -18,6 +18,9 @@ class _EditBillScreenState extends State<EditBillScreen> {
   late TextEditingController _agentNameController;
   final _agentRemarksController = TextEditingController();
   final _agencyCostController = TextEditingController();
+  bool isAccepted = true;
+  bool isUpdateVisible = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,14 +42,14 @@ class _EditBillScreenState extends State<EditBillScreen> {
   Future<void> _updateBill() async {
     if (_formKey.currentState!.validate()) {
       Bill updatedBill = Bill(
-        salespersonName: widget.bill.salespersonName,
-        customerName: _customerNameController.text,
-        agentName: _agentNameController.text,
-        salesRemarks: _salesRemarksController.text,
-        dealNo: widget.bill.dealNo,
-        agentRemarks: _agentRemarksController.text,
-        agentCost: _agencyCostController.text
-      );
+          salespersonName: widget.bill.salespersonName,
+          customerName: _customerNameController.text,
+          agentName: _agentNameController.text,
+          salesRemarks: _salesRemarksController.text,
+          dealNo: widget.bill.dealNo,
+          agentRemarks: _agentRemarksController.text,
+          agentCost: _agencyCostController.text,
+          status: 'Submitted');
 
       await FirebaseFirestore.instance
           .collection('bills')
@@ -54,11 +57,73 @@ class _EditBillScreenState extends State<EditBillScreen> {
           .update(updatedBill.toMap());
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bill updated successfully'),),
+        SnackBar(
+          content: Text('Bill updated successfully'),
+        ),
       );
 
       Navigator.pop(context);
     }
+  }
+
+  Future<void> _acceptOrDeclineBill() async {
+    if (_formKey.currentState!.validate()) {
+      String status = isAccepted ? 'Accepted' : 'Declined';
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.bill.dealNo)
+          .update({'status': status});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bill $status'),
+        ),
+      );
+
+      setState(() {
+        isUpdateVisible = true;
+      });
+    }
+  }
+
+  Future<void> _completeBill() async {
+    if (_formKey.currentState!.validate()) {
+      String status = 'Completed';
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.bill.dealNo)
+          .update({'status': status});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bill $status'),
+        ),
+      );
+
+      setState(() {
+        isUpdateVisible = true;
+      });
+    }
+
+  }  Future<void> _approvedBill() async {
+    if (_formKey.currentState!.validate()) {
+      String status = 'Unbilled';
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.bill.dealNo)
+          .update({'status': status});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bill $status'),
+        ),
+      );
+
+    }
+
   }
 
   @override
@@ -162,9 +227,63 @@ class _EditBillScreenState extends State<EditBillScreen> {
                   ),
                 ),
                 SizedBox(height: 20),
-                TextButton(
-                  onPressed: _updateBill,
-                  child: Text('Update Bill'),
+                Row(
+                  children: [
+                    Visibility(
+                      visible: widget.bill.status == 'Open' ||
+                          widget.bill.status == 'Declined',
+                      child: Row(
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                isAccepted = false;
+                              });
+                              _acceptOrDeclineBill();
+                            },
+                            child: Text('Decline'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                isAccepted = true;
+                              });
+                              _acceptOrDeclineBill();
+                            },
+                            child: Text('Accept'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Visibility(
+                      visible: isUpdateVisible,
+                      child: TextButton(
+                        onPressed: _updateBill,
+                        child: Text('Update Bill'),
+                      ),
+                    ),
+                  ],
+                ),
+                Visibility(
+                  visible: widget.bill.status == 'Submitted',
+                  child: TextButton(
+                    onPressed: _completeBill,
+                    child: Text('Mark job as complete'),
+                  ),
+                ),
+                Visibility(
+                  visible: widget.bill.status == 'Completed',
+                  child: TextButton(
+                    onPressed: _approvedBill,
+                    child: Text('Approve'),
+                  ),
+                ),
+                Visibility(
+                  visible: widget.bill.status == 'Unbilled',
+                  child: TextButton(
+                    onPressed: _completeBill,
+                    child: Text('Bill this'),
+                  ),
                 ),
               ],
             ),

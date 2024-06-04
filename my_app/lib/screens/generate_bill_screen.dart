@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/bill.dart';
-import 'package:my_app/screens/signup_screen.dart';
 
 class GenerateBillScreen extends StatefulWidget {
   @override
@@ -13,6 +12,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   String selectedField = '';
   List<String> fields = [];
   bool isSpecialDeal = false;
+  bool isDraft = false;
   final cNameController = TextEditingController();
   final sRemarkController = TextEditingController();
 
@@ -38,9 +38,9 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Future<void> _fetchAgents() async {
     try {
       QuerySnapshot querySnapshot =
-      await FirebaseFirestore.instance.collection('agents').get();
+          await FirebaseFirestore.instance.collection('agents').get();
       List<String> agentEmails =
-      querySnapshot.docs.map((doc) => doc['name'] as String).toList();
+          querySnapshot.docs.map((doc) => doc['name'] as String).toList();
       setState(() {
         fields = agentEmails;
         if (fields.isNotEmpty) {
@@ -65,6 +65,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
         agentName: agentName,
         salesRemarks: salesRemarks,
         dealNo: dealNo,
+        status: isDraft ? 'Draft' : 'Open',
       );
 
       await FirebaseFirestore.instance
@@ -72,7 +73,9 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
           .doc(dealNo)
           .set(bill.toMap());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bill submitted successfully'),),
+        SnackBar(
+          content: Text('Bill submitted successfully'),
+        ),
       );
 
       cNameController.clear();
@@ -111,8 +114,8 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
               const SizedBox(height: 20.0),
               TextField(
                 onTapOutside: (event) {
-                FocusManager.instance.primaryFocus?.unfocus();
-              },
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
                 controller: cNameController,
                 decoration: const InputDecoration(
                   labelText: 'Customer Name',
@@ -152,20 +155,20 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                 fields.isEmpty
                     ? CircularProgressIndicator()
                     : DropdownButtonFormField<String>(
-                  value: selectedField,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedField = newValue!;
-                    });
-                  },
-                  items: fields
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
+                        value: selectedField,
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedField = newValue!;
+                          });
+                        },
+                        items: fields
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
               const SizedBox(height: 20.0),
               TextFormField(
                 maxLines: null,
@@ -186,22 +189,47 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                 ),
               ),
               const SizedBox(height: 20.0),
-              TextButton(
-                onPressed: () async {
-                  if (cNameController.text.isEmpty ||
-                      sRemarkController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Please fill out all required fields'),
-                      ),
-                    );
-                    return;
-                  }
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      if (cNameController.text.isEmpty ||
+                          sRemarkController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Please fill out all required fields'),
+                          ),
+                        );
+                        return;
+                      }
 
-                  String salespersonName = await getName();
-                  _submitBill(salespersonName);
-                },
-                child: Text('Submit'),
+                      String salespersonName = await getName();
+                      _submitBill(salespersonName);
+                    },
+                    child: Text('Submit'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      if (cNameController.text.isEmpty ||
+                          sRemarkController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Please fill out all required fields'),
+                          ),
+                        );
+                        return;
+                      }
+                      setState(() {
+                        isDraft = !isDraft;
+                      });
+                      String salespersonName = await getName();
+                      _submitBill(salespersonName);
+                    },
+                    child: Text('Save as Draft'),
+                  ),
+                ],
               )
             ],
           ),
