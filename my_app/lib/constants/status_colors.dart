@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 
 Color getCardColor(String status) {
   switch (status) {
-    case 'Open':
+    case 'New':
       return Colors.blueGrey.shade100;
-    case 'Accepted':
+    case 'Assigned':
       return Colors.lightGreenAccent.shade200;
-    case 'Submitted':
+    case 'Opened':
       return Colors.lightGreen.shade100;
-    case 'Completed':
+    case 'Accepted':
       return Colors.pink.shade100;
-    case 'Unbilled':
+    case 'Measured':
       return Colors.white24;
-    case 'Billed':
-      return Colors.lightGreen.shade100;
+    case 'Installed':
+      return Colors.redAccent.shade100;
+    case 'Approved':
+      return Colors.yellow.shade100;
+    case 'Bill Submitted':
+      return Colors.purple.shade100;
     default:
       return Colors.grey;
   }

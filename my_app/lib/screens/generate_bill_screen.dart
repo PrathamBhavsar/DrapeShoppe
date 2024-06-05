@@ -65,7 +65,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
         agentName: agentName,
         salesRemarks: salesRemarks,
         dealNo: dealNo,
-        status: isDraft ? 'Draft' : 'Open',
+        status: isDraft ? 'Draft' : 'New',
       );
 
       await FirebaseFirestore.instance

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:my_app/models/bill.dart';
 
 class EditBillScreen extends StatefulWidget {
@@ -16,10 +19,12 @@ class _EditBillScreenState extends State<EditBillScreen> {
   late TextEditingController _customerNameController;
   late TextEditingController _salesRemarksController;
   late TextEditingController _agentNameController;
-  final _agentRemarksController = TextEditingController();
-  final _agencyCostController = TextEditingController();
+  late TextEditingController _agentRemarksController;
+  late TextEditingController _agencyCostController;
   bool isAccepted = true;
   bool isUpdateVisible = false;
+  final ImagePicker _picker = ImagePicker();
+  List<XFile>? _imageFiles = [];
 
   @override
   void initState() {
@@ -29,6 +34,8 @@ class _EditBillScreenState extends State<EditBillScreen> {
     _salesRemarksController =
         TextEditingController(text: widget.bill.salesRemarks);
     _agentNameController = TextEditingController(text: widget.bill.agentName);
+    _agentRemarksController = TextEditingController(text: widget.bill.agentRemarks);
+    _agencyCostController = TextEditingController(text: widget.bill.agentCost);
   }
 
   @override
@@ -36,7 +43,60 @@ class _EditBillScreenState extends State<EditBillScreen> {
     _customerNameController.dispose();
     _salesRemarksController.dispose();
     _agentNameController.dispose();
+    _agentRemarksController.dispose();
+    _agencyCostController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFiles = await _picker.pickMultiImage(imageQuality: 50);
+
+      if (pickedFiles != null) {
+        setState(() {
+          _imageFiles!.addAll(pickedFiles);
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
+  void _showImagePickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text('From Camera'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  final XFile? photo = await _picker.pickImage(
+                      source: ImageSource.camera, imageQuality: 50);
+                  if (photo != null) {
+                    setState(() {
+                      _imageFiles!.add(photo);
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('From Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _updateBill() async {
@@ -49,7 +109,7 @@ class _EditBillScreenState extends State<EditBillScreen> {
           dealNo: widget.bill.dealNo,
           agentRemarks: _agentRemarksController.text,
           agentCost: _agencyCostController.text,
-          status: 'Submitted');
+          status: 'Measured');
 
       await FirebaseFirestore.instance
           .collection('bills')
@@ -87,9 +147,9 @@ class _EditBillScreenState extends State<EditBillScreen> {
     }
   }
 
-  Future<void> _completeBill() async {
+  Future<void> _billedBill() async {
     if (_formKey.currentState!.validate()) {
-      String status = 'Completed';
+      String status = 'Billed';
 
       await FirebaseFirestore.instance
           .collection('bills')
@@ -102,12 +162,29 @@ class _EditBillScreenState extends State<EditBillScreen> {
         ),
       );
 
-      setState(() {
-        isUpdateVisible = true;
-      });
     }
+  }
 
-  }  Future<void> _approvedBill() async {
+  Future<void> _installedBill() async {
+    if (_formKey.currentState!.validate()) {
+      String status = 'Installed';
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.bill.dealNo)
+          .update({'status': status});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bill $status'),
+        ),
+      );
+
+
+    }
+  }
+
+  Future<void> _approvedBill() async {
     if (_formKey.currentState!.validate()) {
       String status = 'Unbilled';
 
@@ -121,9 +198,7 @@ class _EditBillScreenState extends State<EditBillScreen> {
           content: Text('Bill $status'),
         ),
       );
-
     }
-
   }
 
   @override
@@ -226,12 +301,50 @@ class _EditBillScreenState extends State<EditBillScreen> {
                     ),
                   ),
                 ),
+                SizedBox(
+                  height: 15,
+                ),
+                // Visibility(
+                //   visible: widget.bill.status == 'Accepted',
+                //   child: Container(
+                //     color: Colors.red,
+                //     height: 200,
+                //     // width: 400,
+                //     child: Center(
+                //       child: Column(
+                //         children: [
+                //           Container(
+                //             padding: EdgeInsets.all(20),
+                //             child: ElevatedButton(
+                //               onPressed: () => _showImagePickerOptions(context),
+                //               child: Text('Add Images'),
+                //             ),
+                //           ),
+                //           Expanded(
+                //             child: GridView.builder(
+                //               gridDelegate:
+                //                   SliverGridDelegateWithFixedCrossAxisCount(
+                //                 crossAxisCount: 3,
+                //                 crossAxisSpacing: 4.0,
+                //                 mainAxisSpacing: 4.0,
+                //               ),
+                //               itemCount: _imageFiles!.length,
+                //               itemBuilder: (BuildContext context, int index) {
+                //                 return Image.file(File(_imageFiles![index].path));
+                //               },
+                //             ),
+                //           ),
+                //         ],
+                //       ),
+                //     ),
+                //   ),
+                // ),
                 SizedBox(height: 20),
                 Row(
                   children: [
                     Visibility(
-                      visible: widget.bill.status == 'Open' ||
-                          widget.bill.status == 'Declined',
+                      visible: widget.bill.status == 'New' ||
+                          widget.bill.status == 'Declined' && !isUpdateVisible,
                       child: Row(
                         children: [
                           TextButton(
@@ -267,12 +380,19 @@ class _EditBillScreenState extends State<EditBillScreen> {
                 Visibility(
                   visible: widget.bill.status == 'Submitted',
                   child: TextButton(
-                    onPressed: _completeBill,
+                    onPressed: _billedBill,
                     child: Text('Mark job as complete'),
                   ),
                 ),
                 Visibility(
-                  visible: widget.bill.status == 'Completed',
+                  visible: widget.bill.status == 'Measured',
+                  child: TextButton(
+                    onPressed: _installedBill,
+                    child: Text('Installed'),
+                  ),
+                ),
+                Visibility(
+                  visible: widget.bill.status == 'Installed',
                   child: TextButton(
                     onPressed: _approvedBill,
                     child: Text('Approve'),
@@ -281,7 +401,7 @@ class _EditBillScreenState extends State<EditBillScreen> {
                 Visibility(
                   visible: widget.bill.status == 'Unbilled',
                   child: TextButton(
-                    onPressed: _completeBill,
+                    onPressed: _billedBill,
                     child: Text('Bill this'),
                   ),
                 ),

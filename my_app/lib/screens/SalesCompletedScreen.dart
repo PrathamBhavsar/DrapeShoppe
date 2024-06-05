@@ -90,15 +90,15 @@ class _SalesCompletedScreenState extends State<SalesCompletedScreen> {
                     return const Text('No bills found');
                   } else {
                     List<DocumentSnapshot> allBills = snapshot.data!.docs;
-                    List<DocumentSnapshot> CompletedBills = allBills
+                    List<DocumentSnapshot> installedBills = allBills
                         .where((doc) =>
                     (doc.data() as Map<String, dynamic>)['status'] ==
-                        'Completed')
+                        'Installed')
                         .toList();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildSalesBillCategory('Completed', CompletedBills),
+                        buildSalesBillCategory('Installed', installedBills),
                       ],
                     );
                   }

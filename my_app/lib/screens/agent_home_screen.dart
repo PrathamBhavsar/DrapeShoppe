@@ -105,28 +105,23 @@ class _AgentHomeScreenState extends State<AgentHomeScreen> {
                     return const Text('No bills found');
                   } else {
                     List<DocumentSnapshot> allBills = snapshot.data!.docs;
-                    List<DocumentSnapshot> openBills = allBills
+                    List<DocumentSnapshot> newBills = allBills
                         .where((doc) =>
                             (doc.data() as Map<String, dynamic>)['status'] ==
-                            'Open')
+                            'New')
                         .toList();
                     List<DocumentSnapshot> submittedBills = allBills
                         .where((doc) =>
                             (doc.data() as Map<String, dynamic>)['status'] ==
                             'Submitted')
                         .toList();
-                    List<DocumentSnapshot> acceptedBills = allBills
-                        .where((doc) =>
-                            (doc.data() as Map<String, dynamic>)['status'] ==
-                            'Accepted')
-                        .toList();
+
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildAgentBillCategory('Open', openBills),
+                        buildAgentBillCategory('New', newBills),
                         buildAgentBillCategory('Approved', submittedBills),
-                        buildAgentBillCategory('Completed', acceptedBills),
                       ],
                     );
                   }

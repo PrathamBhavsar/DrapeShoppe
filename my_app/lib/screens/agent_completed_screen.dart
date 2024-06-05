@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:my_app/constants/agent_fetch.dart';
 import 'package:my_app/screens/signup_screen.dart';
 
-class AgentApprovedScreen extends StatefulWidget {
+class AgentOpenedScreen extends StatefulWidget {
   @override
-  _AgentApprovedScreenState createState() => _AgentApprovedScreenState();
+  _AgentOpenedScreenState createState() => _AgentOpenedScreenState();
 }
 
-class _AgentApprovedScreenState extends State<AgentApprovedScreen> {
+class _AgentOpenedScreenState extends State<AgentOpenedScreen> {
   String? agentName;
 
   @override
@@ -88,15 +88,15 @@ class _AgentApprovedScreenState extends State<AgentApprovedScreen> {
                     return const Text('No bills found');
                   } else {
                     List<DocumentSnapshot> allBills = snapshot.data!.docs;
-                    List<DocumentSnapshot> CompletedBills = allBills
+                    List<DocumentSnapshot> measuredBills = allBills
                         .where((doc) =>
                             (doc.data() as Map<String, dynamic>)['status'] ==
-                            'Completed')
+                            'Measured')
                         .toList();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildAgentBillCategory('Completed', CompletedBills),
+                        buildAgentBillCategory('Measured', measuredBills),
                       ],
                     );
                   }

@@ -19,7 +19,7 @@ class BottomAppBarWidget extends StatefulWidget {
 class _BottomAppBarWidgetState extends State<BottomAppBarWidget> {
   int _index = 0;
   List<Widget> widgets = [CircularProgressIndicator(), CircularProgressIndicator()];
-  String userType = 'Salesperson'; // Default value, should be updated
+  String userType = 'Salesperson';
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _BottomAppBarWidgetState extends State<BottomAppBarWidget> {
     setState(() {
       widgets = [
         userType == 'Salesperson' ? SalesHomeScreen() : AgentHomeScreen(),
-        userType == 'Salesperson' ? SalesCompletedScreen() : AgentApprovedScreen(),
+        userType == 'Salesperson' ? SalesCompletedScreen() : AgentOpenedScreen(),
         userType == 'Salesperson' ? SalesBilledScreen() : AgentBilledScreen(),
       ];
     });

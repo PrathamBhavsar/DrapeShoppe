@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/constants/status_colors.dart';
 import 'package:my_app/models/bill.dart';
 import 'package:my_app/screens/edit_bill_screen.dart';
-
-
-
-
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 Widget buildAgentBillCategory(String category, List<DocumentSnapshot> bills) {
   if (bills.isEmpty) {
@@ -30,17 +26,27 @@ Widget buildAgentBillCategory(String category, List<DocumentSnapshot> bills) {
         itemBuilder: (context, index) {
           DocumentSnapshot billDoc = bills[index];
           Map<String, dynamic> billData =
-          billDoc.data() as Map<String, dynamic>;
+              billDoc.data() as Map<String, dynamic>;
           Bill bill = Bill.fromMap(billData);
 
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              String userType = prefs.getString('userType') ?? 'Salesperson';
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (BuildContext context) => EditBillScreen(bill: bill),
                 ),
               );
+              if (userType == 'Agent' && bill.status == 'New') {
+                await FirebaseFirestore.instance
+                    .collection('bills')
+                    .doc(bill.dealNo)
+                    .update({'status': 'Opened'});
+                return;
+              }
             },
             child: Card(
               color: getCardColor(bill.status),
